@@ -22,15 +22,17 @@
  */
 
 #include <default_gui_model.h>
+#include "../../../module_help/eigen/Eigen/Dense"
+#include "../../../module_help/StAC_rtxi/dataFuns.h"//for pullParamLine
 
-class PluginTemplate : public DefaultGUIModel
+class SsObsv : public DefaultGUIModel
 {
 
   Q_OBJECT
 
 public:
-  PluginTemplate(void);
-  virtual ~PluginTemplate(void);
+  SsObsv(void);
+  virtual ~SsObsv(void);
 
   void execute(void);
   void createGUI(DefaultGUIModel::variable_t*, int);
@@ -43,6 +45,28 @@ private:
   double some_parameter;
   double some_state;
   double period;
+
+  	Eigen::Matrix2d A;
+	Eigen::Vector2d B;
+	Eigen::RowVector2d C;
+	float D;
+
+	Eigen::Vector2d x;
+	float y;
+	float u;
+
+	Eigen::RowVector2d K;
+	Eigen::Matrix2d P;
+	Eigen::Matrix2d Q;
+	double R;
+
+
+
+
+  void loadSys();
+  void printSys();
+  void resetSys();
+  void stepKF(double uin);
 
   void initParameters();
 

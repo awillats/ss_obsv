@@ -1,9 +1,10 @@
-PLUGIN_NAME = plugin_template
+PLUGIN_NAME = ss_obsv
 
-HEADERS = plugin-template.h
+HEADERS = ss_obsv.h
 
-SOURCES = plugin-template.cpp\
-          moc_plugin-template.cpp\
+SOURCES = ss_obsv.cpp\
+          moc_ss_obsv.cpp\
+		  ../../../module_help/StAC_rtxi/dataFuns.cpp\
 
 LIBS = 
 

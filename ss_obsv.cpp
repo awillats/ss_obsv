@@ -21,32 +21,38 @@
  * DefaultGUIModel with a custom GUI.
  */
 
-#include "plugin-template.h"
+#include "ss_obsv.h"
 #include <iostream>
 #include <main_window.h>
 
 extern "C" Plugin::Object*
 createRTXIPlugin(void)
 {
-  return new PluginTemplate();
+  return new SsObsv();
 }
 
 static DefaultGUIModel::variable_t vars[] = {
+	{
+		"y","output", DefaultGUIModel::OUTPUT,
+	},
   {
-    "GUI label", "Tooltip description",
-    DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE,
+    "x1", "Tooltip description", DefaultGUIModel::OUTPUT,
   },
   {
-    "A State", "Tooltip description", DefaultGUIModel::STATE,
+    "x2", "Tooltip description", DefaultGUIModel::OUTPUT,
   },
+
+	{
+		"ustim","input", DefaultGUIModel::INPUT,
+	},
 };
 
 static size_t num_vars = sizeof(vars) / sizeof(DefaultGUIModel::variable_t);
 
-PluginTemplate::PluginTemplate(void)
-  : DefaultGUIModel("PluginTemplate with Custom GUI", ::vars, ::num_vars)
+SsObsv::SsObsv(void)
+  : DefaultGUIModel("State-space observer (Kalman Filter)", ::vars, ::num_vars)
 {
-  setWhatsThis("<p><b>PluginTemplate:</b><br>QWhatsThis description.</p>");
+  setWhatsThis("<p><b>SsObsv:</b><br>QWhatsThis description.</p>");
   DefaultGUIModel::createGUI(vars,
                              num_vars); // this is required to create the GUI
   customizeGUI();
@@ -58,31 +64,108 @@ PluginTemplate::PluginTemplate(void)
   QTimer::singleShot(0, this, SLOT(resizeMe()));
 }
 
-PluginTemplate::~PluginTemplate(void)
+SsObsv::~SsObsv(void)
 {
 }
 
+
 void
-PluginTemplate::execute(void)
+SsObsv::loadSys(void)
+{	
+	std::ifstream myfile;
+	myfile.open("../ss_ctrl/params/obsv_params.txt");
+
+	//std::cout<<"load works here"<<"\n";
+	// numA;
+	//halp::simpleFun();
+	pullParamLine(myfile); //gets nx
+
+	std::vector<double> numA = pullParamLine(myfile); 	
+	Eigen::Map<Eigen::Matrix2d> tA(numA.data(),A.rows(),A.cols());
+	A = tA;
+	
+	std::vector<double> numB = pullParamLine(myfile); 	
+	Eigen::Map<Eigen::Vector2d> tB(numB.data(),B.rows(),1);
+	B = tB;
+
+	std::vector<double> numC = pullParamLine(myfile); 	
+	Eigen::Map<Eigen::RowVector2d> tC(numC.data(),1,C.cols());
+	C = tC;
+
+	//For some silly reason, can't load D this way
+	std::vector<double> numD = pullParamLine(myfile); 	
+	D = numD[0];
+	
+	//K,Q,R
+
+
+
+	myfile.close();
+}
+
+void 
+SsObsv::printSys(void)
 {
+  std::cout <<"Here is the matrix A:\n" << A << "\n";
+  std::cout <<"Here is the matrix B:\n" << B << "\n";
+  std::cout <<"Here is the matrix C:\n" << C << "\n";
+  std::cout <<"Here is the matrix D:\n" << D << "\n";
+}
+
+void SsObsv::resetSys(void)
+{
+	x << 0,0;
+	y = 0;
+	u = 0;
+}
+
+
+void SsObsv::stepKF(double uin)
+{
+	//prediction
+	Eigen::Vector2d xpred;
+	Eigen::Matrix2d Ppred;
+	Eigen::Vector2d xup;
+	Eigen::Matrix2d Pup;
+
+	xpred = A*x+B*u;
+	Ppred = A*P*A.transpose()+Q;
+
+	//update
+
+	Eigen::Matrix2d IKC = Eigen::Matrix2d::Identity() - K*C; 
+
+	xup = xpred + K*(y-C*xpred);
+	Ppred = IKC*Ppred*IKC.transpose() + K*R*K.transpose();
+
+	//update gain
+	Eigen::Matrix2d CPCR = C*Ppred*C.transpose() + R;
+	K = Ppred*C.transpose() *CPCR.inverse();
+}
+
+
+
+void
+SsObsv::execute(void)
+{
+  stepKF(input(0));
   return;
 }
 
 void
-PluginTemplate::initParameters(void)
+SsObsv::initParameters(void)
 {
-  some_parameter = 0;
-  some_state = 0;
+	loadSys();
+	resetSys();
+	printSys();
 }
 
 void
-PluginTemplate::update(DefaultGUIModel::update_flags_t flag)
+SsObsv::update(DefaultGUIModel::update_flags_t flag)
 {
   switch (flag) {
     case INIT:
       period = RT::System::getInstance()->getPeriod() * 1e-6; // ms
-      setParameter("GUI label", some_parameter);
-      setState("A State", some_state);
       break;
 
     case MODIFY:
@@ -105,14 +188,14 @@ PluginTemplate::update(DefaultGUIModel::update_flags_t flag)
 }
 
 void
-PluginTemplate::customizeGUI(void)
+SsObsv::customizeGUI(void)
 {
   QGridLayout* customlayout = DefaultGUIModel::getLayout();
 
   QGroupBox* button_group = new QGroupBox;
 
-  QPushButton* abutton = new QPushButton("Button A");
-  QPushButton* bbutton = new QPushButton("Button B");
+  QPushButton* abutton = new QPushButton("Load System");
+  QPushButton* bbutton = new QPushButton("Reset System");
   QHBoxLayout* button_layout = new QHBoxLayout;
   button_group->setLayout(button_layout);
   button_layout->addWidget(abutton);
@@ -126,11 +209,14 @@ PluginTemplate::customizeGUI(void)
 
 // functions designated as Qt slots are implemented as regular C++ functions
 void
-PluginTemplate::aBttn_event(void)
+SsObsv::aBttn_event(void)
 {
+	loadSys();
+	printSys();
 }
 
 void
-PluginTemplate::bBttn_event(void)
+SsObsv::bBttn_event(void)
 {
+	resetSys();
 }
