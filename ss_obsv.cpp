@@ -54,6 +54,7 @@ static DefaultGUIModel::variable_t vars[] = {
 	{
 		"y_meas","measured y", DefaultGUIModel::INPUT,
 	},
+	{"q","state_index", DefaultGUIModel::INPUT | DefaultGUIModel::INTEGER},
 
 };
 
@@ -110,6 +111,24 @@ SsObsv::execute(void)
 }
 
 
+void SsObsv::switchSys(int idx)
+{
+	if (idx==0)
+	{
+		A=A_;
+		B=B_;
+		C=C_;
+		D=D_;
+	}
+	else
+	{
+		A=A2;
+		B=B2;
+		C=C2;
+		D=D2;
+	}
+}
+
 void
 SsObsv::loadSys(void)
 {	
@@ -135,13 +154,22 @@ SsObsv::loadSys(void)
 	Eigen::Map<Eigen::RowVector2d> tC(numC.data(),1,C.cols());
 	C = tC;
 
-	//For some silly reason, can't load D this way
 	std::vector<double> numD = pullParamLine(myfile); 	
-	//std::cout <<"ww"<< *numD.begin()<<"ww\n";
 	D = numD[0];
-	//D = (float) numD.at(0);
+
 	
 	myfile.close();
+
+	double switchScale = 1.4;
+	A_=A;
+	B_=B;
+	C_=C;
+	D_=D;
+
+	A2=A;
+	B2=B*switchScale;
+	C2=C;
+	D2=D;
 
 
 	myfile.open(homepath+"/RTXI/modules/ss_modules/ss_obsv/params/obsv_params.txt");
@@ -150,6 +178,9 @@ SsObsv::loadSys(void)
 	Eigen::Map<Eigen::RowVector2d> tK(vK.data(),1,K_obsv.cols());//,1,K.cols());
 	K_obsv = tK;
 	myfile.close();
+
+	K_obsv_=K_obsv;
+	K_obsv2=K_obsv/switchScale;
 
 
 

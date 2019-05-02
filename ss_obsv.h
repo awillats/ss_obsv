@@ -60,17 +60,40 @@ private:
   double period;
 
 
+int switch_idx;
+
+/*
+Eigen::Tensor As;
+Eigen::Tensor Bs;
+Eigen::Tensor Cs;
+Eigen::Tensor Ds;
+*/
 	Eigen::Matrix2d A;
 	Eigen::Vector2d B;
 	Eigen::RowVector2d C;
 	float D;
 
+	Eigen::Matrix2d A_;
+	Eigen::Vector2d B_;
+	Eigen::RowVector2d C_;
+	float D_;
+
+	Eigen::Matrix2d A2;
+	Eigen::Vector2d B2;
+	Eigen::RowVector2d C2;
+	float D2;
+
+
   	Eigen::RowVector2d K_obsv;
+  	Eigen::RowVector2d K_obsv_;
+  	Eigen::RowVector2d K_obsv2;
 
 	Eigen::Vector2d x;
 	float y;
 
 	float u;
+
+  void switchSys(int);
 
   void loadSys(void);
   void resetSys(void);
