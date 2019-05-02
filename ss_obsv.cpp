@@ -52,7 +52,7 @@ static DefaultGUIModel::variable_t vars[] = {
 		"ustim","input", DefaultGUIModel::INPUT,
 	},
 	{
-		"u dist","disturbance", DefaultGUIModel::INPUT,
+		"y_meas","measured y", DefaultGUIModel::INPUT,
 	},
 
 };
@@ -79,22 +79,22 @@ SsObsv::~SsObsv(void)
 }
 
 
-void SsObsv::stepPlant(double uin)
+void SsObsv::stepPlant(double uin, double ymeas)
 {
 	u = uin;
-	x = A*x + B*u;
+	x = A*x + B*u - K_obsv.transpose()*(y-ymeas);//transpose?
 	y = C*x;
 }
 
 void
 SsObsv::execute(void)
 {
-	double u_pre = input(0)+input(1);
+	double u_pre = input(0);
 	//plds::stdVec u_vec = inputVector(2);
 	//double u_fromvec = u_vec[0];
 
 	double u_total = u_pre; //+u_fromvec
-	stepPlant(u_total);
+	stepPlant(u_total, input(1));
 	setState("x1",x(0));
 	setState("x2",x(1));
 	
@@ -142,6 +142,17 @@ SsObsv::loadSys(void)
 	//D = (float) numD.at(0);
 	
 	myfile.close();
+
+
+	myfile.open(homepath+"/RTXI/modules/ss_modules/ss_obsv/params/obsv_params.txt");
+	pullParamLine(myfile); //gets nx
+	std::vector<double> vK = pullParamLine(myfile); 	
+	Eigen::Map<Eigen::RowVector2d> tK(vK.data(),1,K_obsv.cols());//,1,K.cols());
+	K_obsv = tK;
+	myfile.close();
+
+
+
 /*
 	//look on stackoverflow @ initialize eigenvector with stdvector
 	float data[] = {1,2,3,4};
@@ -185,6 +196,7 @@ SsObsv::initParameters(void)
 	D=0;
 */
 
+	K_obsv << 0.0,0.0;//hardcode
 	loadSys();
 	printSys();
 	resetSys();

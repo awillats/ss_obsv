@@ -65,6 +65,8 @@ private:
 	Eigen::RowVector2d C;
 	float D;
 
+  	Eigen::RowVector2d K_obsv;
+
 	Eigen::Vector2d x;
 	float y;
 
@@ -73,7 +75,7 @@ private:
   void loadSys(void);
   void resetSys(void);
   void printSys(void);
-  void stepPlant(double);
+  void stepPlant(double,double);
   void initParameters();
 
 private slots:
