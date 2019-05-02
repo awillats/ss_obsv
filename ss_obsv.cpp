@@ -17,12 +17,11 @@
  */
 
 /*
- * This is a template implementation file for a user module derived from
- * DefaultGUIModel with a custom GUI.
+ * do gui elements last, just get outputs to screen
+ * 
  */
 
 #include "ss_obsv.h"
-#include <iostream>
 #include <main_window.h>
 
 extern "C" Plugin::Object*
@@ -32,9 +31,15 @@ createRTXIPlugin(void)
 }
 
 static DefaultGUIModel::variable_t vars[] = {
+  {
+    "State-space plant", "Tooltip description",
+    DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE,
+  },
+
 	{
-		"y","output", DefaultGUIModel::OUTPUT,
+	    "y","output", DefaultGUIModel::OUTPUT,
 	},
+	{ "X_out", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
   {
     "x1", "Tooltip description", DefaultGUIModel::OUTPUT,
   },
@@ -42,15 +47,20 @@ static DefaultGUIModel::variable_t vars[] = {
     "x2", "Tooltip description", DefaultGUIModel::OUTPUT,
   },
 
+
 	{
 		"ustim","input", DefaultGUIModel::INPUT,
 	},
+	{
+		"u dist","disturbance", DefaultGUIModel::INPUT,
+	},
+
 };
 
 static size_t num_vars = sizeof(vars) / sizeof(DefaultGUIModel::variable_t);
 
 SsObsv::SsObsv(void)
-  : DefaultGUIModel("State-space observer (Kalman Filter)", ::vars, ::num_vars)
+  : DefaultGUIModel("SsObsv with Custom GUI", ::vars, ::num_vars)
 {
   setWhatsThis("<p><b>SsObsv:</b><br>QWhatsThis description.</p>");
   DefaultGUIModel::createGUI(vars,
@@ -69,11 +79,44 @@ SsObsv::~SsObsv(void)
 }
 
 
+void SsObsv::stepPlant(double uin)
+{
+	u = uin;
+	x = A*x + B*u;
+	y = C*x;
+}
+
+void
+SsObsv::execute(void)
+{
+	double u_pre = input(0)+input(1);
+	//plds::stdVec u_vec = inputVector(2);
+	//double u_fromvec = u_vec[0];
+
+	double u_total = u_pre; //+u_fromvec
+	stepPlant(u_total);
+	setState("x1",x(0));
+	setState("x2",x(1));
+	
+	output(0) = y;
+
+	std::vector<double>xstd(x.data(),x.data()+x.size());
+
+	outputVector(1) = xstd;
+	output(2) = x(0);
+	output(3) = x(1);
+	
+  return;
+}
+
+
 void
 SsObsv::loadSys(void)
 {	
+
+	std::string homepath = getenv("HOME");
 	std::ifstream myfile;
-	myfile.open("../ss_ctrl/params/obsv_params.txt");
+	myfile.open(homepath+"/RTXI/modules/ss_modules/ss_ctrl/params/plant_params.txt");
 
 	//std::cout<<"load works here"<<"\n";
 	// numA;
@@ -94,17 +137,23 @@ SsObsv::loadSys(void)
 
 	//For some silly reason, can't load D this way
 	std::vector<double> numD = pullParamLine(myfile); 	
+	//std::cout <<"ww"<< *numD.begin()<<"ww\n";
 	D = numD[0];
+	//D = (float) numD.at(0);
 	
-	//K,Q,R
-
-
-
 	myfile.close();
+/*
+	//look on stackoverflow @ initialize eigenvector with stdvector
+	float data[] = {1,2,3,4};
+	Eigen::Map<Eigen::Vector3f> v1(data);
+	std::vector<float> data2= {1,2,3,4};
+	Eigen::Vector3f v2(data2.data());
+	std::cout<<v2<<"?\n";
+	//Eigen::Matrix2f zz;
+*/
 }
 
-void 
-SsObsv::printSys(void)
+void SsObsv::printSys(void)
 {
   std::cout <<"Here is the matrix A:\n" << A << "\n";
   std::cout <<"Here is the matrix B:\n" << B << "\n";
@@ -114,50 +163,31 @@ SsObsv::printSys(void)
 
 void SsObsv::resetSys(void)
 {
+
 	x << 0,0;
 	y = 0;
 	u = 0;
 }
 
 
-void SsObsv::stepKF(double uin)
-{
-	//prediction
-	Eigen::Vector2d xpred;
-	Eigen::Matrix2d Ppred;
-	Eigen::Vector2d xup;
-	Eigen::Matrix2d Pup;
-
-	xpred = A*x+B*u;
-	Ppred = A*P*A.transpose()+Q;
-
-	//update
-
-	Eigen::Matrix2d IKC = Eigen::Matrix2d::Identity() - K*C; 
-
-	xup = xpred + K*(y-C*xpred);
-	Ppred = IKC*Ppred*IKC.transpose() + K*R*K.transpose();
-
-	//update gain
-	Eigen::Matrix2d CPCR = C*Ppred*C.transpose() + R;
-	K = Ppred*C.transpose() *CPCR.inverse();
-}
-
-
-
-void
-SsObsv::execute(void)
-{
-  stepKF(input(0));
-  return;
-}
-
 void
 SsObsv::initParameters(void)
 {
+  some_parameter = 0;
+  some_state = 0;
+
+/*
+	A << 0.9990, 0.0095,
+		-0.1903, 0.9039;
+	B << 0,
+		 0.0095;
+	C << 1,0;
+	D=0;
+*/
+
 	loadSys();
-	resetSys();
 	printSys();
+	resetSys();
 }
 
 void
@@ -166,6 +196,8 @@ SsObsv::update(DefaultGUIModel::update_flags_t flag)
   switch (flag) {
     case INIT:
       period = RT::System::getInstance()->getPeriod() * 1e-6; // ms
+      setParameter("GUI label", some_parameter);
+      //setState("A State", some_state);
       break;
 
     case MODIFY:
@@ -194,8 +226,8 @@ SsObsv::customizeGUI(void)
 
   QGroupBox* button_group = new QGroupBox;
 
-  QPushButton* abutton = new QPushButton("Load System");
-  QPushButton* bbutton = new QPushButton("Reset System");
+  QPushButton* abutton = new QPushButton("Load Matrices");
+  QPushButton* bbutton = new QPushButton("Reset Sys");
   QHBoxLayout* button_layout = new QHBoxLayout;
   button_group->setLayout(button_layout);
   button_layout->addWidget(abutton);
@@ -204,6 +236,7 @@ SsObsv::customizeGUI(void)
   QObject::connect(bbutton, SIGNAL(clicked()), this, SLOT(bBttn_event()));
 
   customlayout->addWidget(button_group, 0, 0);
+
   setLayout(customlayout);
 }
 
@@ -220,3 +253,4 @@ SsObsv::bBttn_event(void)
 {
 	resetSys();
 }
+
