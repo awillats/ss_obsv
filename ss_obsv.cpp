@@ -91,10 +91,8 @@ void
 SsObsv::execute(void)
 {
 	double u_pre = input(0);
-	//plds::stdVec u_vec = inputVector(2);
-	//double u_fromvec = u_vec[0];
 
-	double u_total = u_pre; //+u_fromvec
+	double u_total = u_pre;
 	stepPlant(u_total, input(1));
 	setState("x1",x(0));
 	setState("x2",x(1));
@@ -132,34 +130,22 @@ void SsObsv::switchSys(int idx)
 void
 SsObsv::loadSys(void)
 {	
-
+	//read in system params from file
 	std::string homepath = getenv("HOME");
 	std::ifstream myfile;
 	myfile.open(homepath+"/RTXI/modules/ss_modules/ss_ctrl/params/plant_params.txt");
 
-	//std::cout<<"load works here"<<"\n";
-	// numA;
-	//halp::simpleFun();
 	pullParamLine(myfile); //gets nx
-
-	std::vector<double> numA = pullParamLine(myfile); 	
-	Eigen::Map<Eigen::Matrix2d> tA(numA.data(),A.rows(),A.cols());
-	A = tA;
-	
-	std::vector<double> numB = pullParamLine(myfile); 	
-	Eigen::Map<Eigen::Vector2d> tB(numB.data(),B.rows(),1);
-	B = tB;
-
-	std::vector<double> numC = pullParamLine(myfile); 	
-	Eigen::Map<Eigen::RowVector2d> tC(numC.data(),1,C.cols());
-	C = tC;
+		
+	A = stdVec2EigenM(pullParamLine(myfile), A.rows(), A.cols());
+	B = stdVec2EigenV(pullParamLine(myfile), B.rows());
+	C = stdVec2EigenRV(pullParamLine(myfile), C.cols());
 
 	std::vector<double> numD = pullParamLine(myfile); 	
 	D = numD[0];
-
-	
 	myfile.close();
 
+	//generate second switched system
 	double switchScale = 1.4;
 	A_=A;
 	B_=B;
@@ -171,28 +157,14 @@ SsObsv::loadSys(void)
 	C2=C;
 	D2=D;
 
-
+	//read in observer gains from file
 	myfile.open(homepath+"/RTXI/modules/ss_modules/ss_obsv/params/obsv_params.txt");
 	pullParamLine(myfile); //gets nx
-	std::vector<double> vK = pullParamLine(myfile); 	
-	Eigen::Map<Eigen::RowVector2d> tK(vK.data(),1,K_obsv.cols());//,1,K.cols());
-	K_obsv = tK;
+	K_obsv = stdVec2EigenRV(pullParamLine(myfile), K_obsv.cols());
 	myfile.close();
 
 	K_obsv_=K_obsv;
 	K_obsv2=K_obsv/switchScale;
-
-
-
-/*
-	//look on stackoverflow @ initialize eigenvector with stdvector
-	float data[] = {1,2,3,4};
-	Eigen::Map<Eigen::Vector3f> v1(data);
-	std::vector<float> data2= {1,2,3,4};
-	Eigen::Vector3f v2(data2.data());
-	std::cout<<v2<<"?\n";
-	//Eigen::Matrix2f zz;
-*/
 }
 
 void SsObsv::printSys(void)
@@ -217,15 +189,6 @@ SsObsv::initParameters(void)
 {
   some_parameter = 0;
   some_state = 0;
-
-/*
-	A << 0.9990, 0.0095,
-		-0.1903, 0.9039;
-	B << 0,
-		 0.0095;
-	C << 1,0;
-	D=0;
-*/
 
 	K_obsv << 0.0,0.0;//hardcode
 	loadSys();
