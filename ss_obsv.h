@@ -26,16 +26,20 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include "../../../module_help/StAC_rtxi/dataFuns.h"//for pullParamLine
 
 //#include "help.h"
 
 #include <default_gui_model.h>
 
-#include "../../../module_help/eigen/Eigen/Dense"
+
+// in module_help
+#include <eigen/Eigen/Dense>
+#include <StAC_rtxi/dataFuns.h>//for pullParamLine
+//#include <unsupported/Eigen/CXX11/Tensor>
 
 // plds
 #include <dynCtrlEst>
+#include <plds_adam_funs.hpp>
 
 
 class SsObsv : public DefaultGUIModel
@@ -61,27 +65,15 @@ private:
 
 
 int switch_idx;
+double switch_scale;
+  plds_adam sys;
+  plds_adam sys1;
+  plds_adam sys2;
 
-/*
-Eigen::Tensor As;
-Eigen::Tensor Bs;
-Eigen::Tensor Cs;
-Eigen::Tensor Ds;
-*/
 	Eigen::Matrix2d A;
 	Eigen::Vector2d B;
 	Eigen::RowVector2d C;
 	float D;
-
-	Eigen::Matrix2d A_;
-	Eigen::Vector2d B_;
-	Eigen::RowVector2d C_;
-	float D_;
-
-	Eigen::Matrix2d A2;
-	Eigen::Vector2d B2;
-	Eigen::RowVector2d C2;
-	float D2;
 
 
   	Eigen::RowVector2d K_obsv;
@@ -94,9 +86,10 @@ Eigen::Tensor Ds;
 	float u;
 
   void switchSys(int);
+  void stepObsv(double, double);
+  void loadGains(void);
 
-  void loadSys(void);
-  void resetSys(void);
+  void resetAllSys(void);
   void printSys(void);
   void stepPlant(double,double);
   void initParameters();

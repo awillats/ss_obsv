@@ -80,20 +80,26 @@ SsObsv::~SsObsv(void)
 }
 
 
-void SsObsv::stepPlant(double uin, double ymeas)
+void SsObsv::stepObsv(double uin, double ymeas)
 {
 	u = uin;
 	x = A*x + B*u - K_obsv.transpose()*(y-ymeas);//transpose?
 	y = C*x;
+	sys.x=x;
+	sys.y=y;
 }
 
 void
 SsObsv::execute(void)
 {
+	switch_idx = input(2);
+	switchSys(switch_idx);
+
+
 	double u_pre = input(0);
 
 	double u_total = u_pre;
-	stepPlant(u_total, input(1));
+	stepObsv(u_total, input(1));
 	setState("x1",x(0));
 	setState("x2",x(1));
 	
@@ -111,51 +117,29 @@ SsObsv::execute(void)
 
 void SsObsv::switchSys(int idx)
 {
+	x = sys.x;//snapshot current system state
+	//at the moment x is held in ss_plant and operated on
 	if (idx==0)
 	{
-		A=A_;
-		B=B_;
-		C=C_;
-		D=D_;
+	    sys = sys1;
 	}
 	else
 	{
-		A=A2;
-		B=B2;
-		C=C2;
-		D=D2;
+	    sys = sys2;
 	}
+	A = sys.A;
+	B = sys.B;
+	C = sys.C;
+	D = sys.D;
+	sys.x = x; //make sure new system has up to date state
 }
 
 void
-SsObsv::loadSys(void)
+SsObsv::loadGains(void)
 {	
 	//read in system params from file
 	std::string homepath = getenv("HOME");
 	std::ifstream myfile;
-	myfile.open(homepath+"/RTXI/modules/ss_modules/ss_ctrl/params/plant_params.txt");
-
-	pullParamLine(myfile); //gets nx
-		
-	A = stdVec2EigenM(pullParamLine(myfile), A.rows(), A.cols());
-	B = stdVec2EigenV(pullParamLine(myfile), B.rows());
-	C = stdVec2EigenRV(pullParamLine(myfile), C.cols());
-
-	std::vector<double> numD = pullParamLine(myfile); 	
-	D = numD[0];
-	myfile.close();
-
-	//generate second switched system
-	double switchScale = 1.4;
-	A_=A;
-	B_=B;
-	C_=C;
-	D_=D;
-
-	A2=A;
-	B2=B*switchScale;
-	C2=C;
-	D2=D;
 
 	//read in observer gains from file
 	myfile.open(homepath+"/RTXI/modules/ss_modules/ss_obsv/params/obsv_params.txt");
@@ -164,24 +148,17 @@ SsObsv::loadSys(void)
 	myfile.close();
 
 	K_obsv_=K_obsv;
-	K_obsv2=K_obsv/switchScale;
+	K_obsv2=K_obsv/switch_scale;
 }
 
-void SsObsv::printSys(void)
+void SsObsv::resetAllSys(void)
 {
-  std::cout <<"Here is the matrix A:\n" << A << "\n";
-  std::cout <<"Here is the matrix B:\n" << B << "\n";
-  std::cout <<"Here is the matrix C:\n" << C << "\n";
-  std::cout <<"Here is the matrix D:\n" << D << "\n";
+	sys.resetSys();
+	sys1.resetSys();
+	sys2.resetSys();
 }
 
-void SsObsv::resetSys(void)
-{
 
-	x << 0,0;
-	y = 0;
-	u = 0;
-}
 
 
 void
@@ -189,11 +166,17 @@ SsObsv::initParameters(void)
 {
   some_parameter = 0;
   some_state = 0;
+   switch_scale=1.4;
 
-	K_obsv << 0.0,0.0;//hardcode
-	loadSys();
-	printSys();
-	resetSys();
+	sys = plds_adam();
+	sys.initSys();
+
+	sys1 = sys;
+	sys2 = sys;
+	sys2.B = sys2.B*switch_scale;
+
+	loadGains();
+
 }
 
 void
@@ -256,26 +239,24 @@ SsObsv::customizeGUI(void)
 void
 SsObsv::aBttn_event(void)
 {
-	loadSys();
-	printSys();
+	initParameters();
 }
-
 void
 SsObsv::bBttn_event(void)
 {
-	resetSys();
+	resetAllSys();
 }
 
 
 void SsObsv::zBttn_event(bool tog)
 {
-	loadSys();
+	initParameters();
 	if (tog)
 	{
 		K_obsv << 0.0,0.0;//hardcode
 		K_obsv_ = K_obsv;// << 0.0,0.0;//hardcode
 		K_obsv2 = K_obsv;// << 0.0,0.0;//hardcode
 	}
-	printSys();
+	
 }
 
