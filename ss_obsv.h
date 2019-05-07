@@ -35,7 +35,6 @@
 // in module_help
 #include <eigen/Eigen/Dense>
 #include <StAC_rtxi/dataFuns.h>//for pullParamLine
-//#include <unsupported/Eigen/CXX11/Tensor>
 
 // plds
 #include <dynCtrlEst>
