@@ -119,14 +119,8 @@ void SsObsv::switchSys(int idx)
 {
 	x = sys.x;//snapshot current system state
 	//at the moment x is held in ss_plant and operated on
-	if (idx==0)
-	{
-	    sys = sys1;
-	}
-	else
-	{
-	    sys = sys2;
-	}
+	sys = ((idx==0) ? sys1 : sys2);
+
 	A = sys.A;
 	B = sys.B;
 	C = sys.C;
