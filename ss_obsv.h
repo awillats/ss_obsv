@@ -38,8 +38,8 @@
 
 // plds
 #include <dynCtrlEst>
-#include <plds_adam_funs.hpp>
-
+#include <plds_adam_funs.hpp> //probably unnecessary
+#include <plds_obsv_adam.hpp>
 
 class SsObsv : public DefaultGUIModel
 {
@@ -58,17 +58,19 @@ protected:
   virtual void update(DefaultGUIModel::update_flags_t);
 
 private:
-  double some_parameter;
-  double some_state;
   double period;
 
 
 int switch_idx;
 double switch_scale;
-  plds_adam sys;
-  plds_adam sys1;
-  plds_adam sys2;
+  lds_adam sys;
+  lds_adam sys1;
+  lds_adam sys2;
 
+
+  lds_obsv obsv;
+
+/*
 	Eigen::Matrix2d A;
 	Eigen::Vector2d B;
 	Eigen::RowVector2d C;
@@ -78,11 +80,10 @@ double switch_scale;
   	Eigen::RowVector2d K_obsv;
   	Eigen::RowVector2d K_obsv_;
   	Eigen::RowVector2d K_obsv2;
-
-	Eigen::Vector2d x;
-	float y;
-
-	float u;
+*/
+	adam::Vec x;
+	adam::data_t y;
+	adam::data_t u;
 
   void switchSys(int);
   void stepObsv(double, double);

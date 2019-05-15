@@ -24,6 +24,8 @@
 #include "ss_obsv.h"
 #include <main_window.h>
 
+using namespace adam;
+
 extern "C" Plugin::Object*
 createRTXIPlugin(void)
 {
@@ -79,7 +81,7 @@ SsObsv::~SsObsv(void)
 {
 }
 
-
+/*
 void SsObsv::stepObsv(double uin, double ymeas)
 {
 	u = uin;
@@ -88,33 +90,33 @@ void SsObsv::stepObsv(double uin, double ymeas)
 	sys.x=x;
 	sys.y=y;
 }
-
+*/
 void
 SsObsv::execute(void)
 {
 	switch_idx = input(2);
-	switchSys(switch_idx);
+	//switchSys(switch_idx);
 
 
 	double u_pre = input(0);
 
 	double u_total = u_pre;
-	stepObsv(u_total, input(1));
-	setState("x1",x(0));
-	setState("x2",x(1));
+	//stepObsv(u_total, input(1));
+	//setState("x1",x(0));
+	//setState("x2",x(1));
 	
 	output(0) = y;
 
-	std::vector<double>xstd(x.data(),x.data()+x.size());
+	//std::vector<double>xstd(x.data(),x.data()+x.size());
 
-	outputVector(1) = xstd;
-	output(2) = x(0);
-	output(3) = x(1);
+	//outputVector(1) = xstd;
+	//output(2) = x(0);
+	//output(3) = x(1);
 	
   return;
 }
 
-
+/*
 void SsObsv::switchSys(int idx)
 {
 	x = sys.x;//snapshot current system state
@@ -144,7 +146,7 @@ SsObsv::loadGains(void)
 	K_obsv_=K_obsv;
 	K_obsv2=K_obsv/switch_scale;
 }
-
+*/
 void SsObsv::resetAllSys(void)
 {
 	sys.resetSys();
@@ -158,18 +160,20 @@ void SsObsv::resetAllSys(void)
 void
 SsObsv::initParameters(void)
 {
-  some_parameter = 0;
-  some_state = 0;
    switch_scale=1.4;
 
-	sys = plds_adam();
+	sys = lds_adam();
 	sys.initSys();
 
 	sys1 = sys;
 	sys2 = sys;
 	sys2.B = sys2.B*switch_scale;
 
-	loadGains();
+	//loadGains();
+
+
+	//obsv = lds_obsv();
+	//obsv.predict(0,0);
 
 }
 
@@ -179,12 +183,9 @@ SsObsv::update(DefaultGUIModel::update_flags_t flag)
   switch (flag) {
     case INIT:
       period = RT::System::getInstance()->getPeriod() * 1e-6; // ms
-      setParameter("GUI label", some_parameter);
-      //setState("A State", some_state);
       break;
 
     case MODIFY:
-      some_parameter = getParameter("GUI label").toDouble();
       break;
 
     case UNPAUSE:
@@ -245,12 +246,14 @@ SsObsv::bBttn_event(void)
 void SsObsv::zBttn_event(bool tog)
 {
 	initParameters();
+/*
 	if (tog)
 	{
 		K_obsv << 0.0,0.0;//hardcode
 		K_obsv_ = K_obsv;// << 0.0,0.0;//hardcode
 		K_obsv2 = K_obsv;// << 0.0,0.0;//hardcode
 	}
+*/
 	
 }
 
