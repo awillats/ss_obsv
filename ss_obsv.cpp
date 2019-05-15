@@ -152,6 +152,11 @@ void SsObsv::resetAllSys(void)
 	sys.resetSys();
 	sys1.resetSys();
 	sys2.resetSys();
+
+	obsv.resetSys();
+	std::cout<<obsv.x;
+	std::cout<<"oX\n";
+
 }
 
 
@@ -172,7 +177,8 @@ SsObsv::initParameters(void)
 	//loadGains();
 
 
-	//obsv = lds_obsv();
+	obsv = lds_obsv();
+	obsv.K = 0*obsv.K;
 	//obsv.predict(0,0);
 
 }
