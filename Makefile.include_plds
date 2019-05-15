@@ -1,0 +1,20 @@
+#!/bin/bash
+# PLDS_PRE := $(shell pwd)/plds
+PLDS_PRE := /usr
+
+# add a rule for making libarmadillo
+libdynCtrlEst: $(PLDS_PRE)/lib/libdynCtrlEst.so
+
+# $(PLDS_PRE)/lib/libdynCtrlEst.so:
+# 	$(MAKE) -C plds install
+
+PLDS_INCLUDE_DIRS = -I$(PLDS_PRE)/include
+PLDS_LDFLAGS := $(PLDS_LDFLAGS) -L$(PLDS_PRE)/lib \
+-Wl,-rpath,$(PLDS_PRE)/lib \
+-ldynCtrlEst
+
+CXXFLAGS := $(CXXFLAGS) $(PLDS_INCLUDE_DIRS)
+INCLUDES := $(INCLUDES) $(PLDS_INCLUDE_DIRS)
+LDFLAGS := $(LDFLAGS) $(PLDS_LDFLAGS)
+# OBJECTS := $(OBJECTS) $(PLDS_PRE)/libdynCtrlEst*
+# OBJECTS := $(OBJECTS) libdynCtrlEst

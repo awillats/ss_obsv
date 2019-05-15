@@ -1,0 +1,34 @@
+#!/bin/bash
+# ARM_DIR := $(shell pwd)/plds/armadillo
+ARM_DIR := /usr/lib/x86_64-linux-gnu
+
+# add a rule for making libarmadillo
+libarmadillo: $(ARM_DIR)/libarmadillo.so
+
+$(ARM_DIR)/libarmadillo.so:
+	# $(MAKE) -C $(ARM_DIR)
+	cd plds && ./makeArmadillo.sh
+
+ARM_INCLUDE_DIRS = -I/usr/include \
+-I/usr/include/armadillo_bits
+
+ARM_LDFLAGS := $(ARM_LDFLAGS) -L$(ARM_DIR) \
+-Wl,-rpath,$(ARM_DIR) \
+-larmadillo
+
+# ARM_COMP = -O3 -std=c++11 -fPIC
+
+ifneq ($(OS),Darwin)
+ARM_COMP += -Wl,--export-dynamic
+ARM_LDFLAGS += -L/usr/lib -Wl,-rpath,/usr/lib -lopenblas -larpack -llapack
+endif
+
+ifeq ($(OS),Darwin)
+ARM_LDFLAGS := $(ARM_LDFLAGS) -framework Accelerate
+endif
+
+CXXFLAGS := $(CXXFLAGS) $(ARM_INCLUDE_DIRS)
+INCLUDES := $(INCLUDES) $(ARM_INCLUDE_DIRS)
+LDFLAGS := $(LDFLAGS) $(ARM_LDFLAGS)
+# OBJECTS := $(OBJECTS) $(ARMA_DIR)/libarmadillo*
+OBJECTS := $(OBJECTS) libarmadillo
