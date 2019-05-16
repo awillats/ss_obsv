@@ -94,13 +94,19 @@ void SsObsv::stepObsv(double uin, double ymeas)
 void
 SsObsv::execute(void)
 {
+	double u_pre = input(0);
+	double u_total = u_pre;
+
+	double ymeas = input(1);
+
 	switch_idx = input(2);
 	//switchSys(switch_idx);
 
 
-	double u_pre = input(0);
+	obsv.predict(u_total, ymeas);
+	y = obsv.y;
 
-	double u_total = u_pre;
+
 	//stepObsv(u_total, input(1));
 	//setState("x1",x(0));
 	//setState("x2",x(1));
@@ -154,6 +160,9 @@ void SsObsv::resetAllSys(void)
 	sys2.resetSys();
 
 	obsv.resetSys();
+
+	obsv.x.randn();
+
 	std::cout<<obsv.x;
 	std::cout<<"oX\n";
 
@@ -178,7 +187,7 @@ SsObsv::initParameters(void)
 
 
 	obsv = lds_obsv();
-	obsv.K = 0*obsv.K;
+	//obsv.K = 0*obsv.K;
 	//obsv.predict(0,0);
 
 }
@@ -251,15 +260,18 @@ SsObsv::bBttn_event(void)
 
 void SsObsv::zBttn_event(bool tog)
 {
-	initParameters();
-/*
+	//initParameters();
+
 	if (tog)
 	{
-		K_obsv << 0.0,0.0;//hardcode
-		K_obsv_ = K_obsv;// << 0.0,0.0;//hardcode
-		K_obsv2 = K_obsv;// << 0.0,0.0;//hardcode
+		obsv.K = 0*obsv.K;
 	}
-*/
+	else
+	{
+		lds_obsv newObsv = lds_obsv();
+		obsv.K = newObsv.K;
+	}
+
 	
 }
 
