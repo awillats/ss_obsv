@@ -69,6 +69,7 @@ double switch_scale;
 
 
   lds_obsv obsv;
+  glds_obsv kalman;
 
 /*
 	Eigen::Matrix2d A;

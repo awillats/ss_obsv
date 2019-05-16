@@ -39,7 +39,10 @@ static DefaultGUIModel::variable_t vars[] = {
   },
 
 	{
-	    "y","output", DefaultGUIModel::OUTPUT,
+	    "y_det","output", DefaultGUIModel::OUTPUT,
+	},
+	{
+	    "y_kf","output", DefaultGUIModel::OUTPUT,
 	},
 	{ "X_out", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
   {
@@ -106,12 +109,15 @@ SsObsv::execute(void)
 	obsv.predict(u_total, ymeas);
 	y = obsv.y;
 
+	kalman.predict(u_total, ymeas);
+
 
 	//stepObsv(u_total, input(1));
 	//setState("x1",x(0));
 	//setState("x2",x(1));
 	
 	output(0) = y;
+	output(1) = kalman.y;
 
 	//std::vector<double>xstd(x.data(),x.data()+x.size());
 
@@ -185,6 +191,8 @@ SsObsv::initParameters(void)
 
 	//loadGains();
 
+
+	kalman = glds_obsv();
 
 	obsv = lds_obsv();
 	//obsv.K = 0*obsv.K;
