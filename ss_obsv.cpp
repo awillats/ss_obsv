@@ -44,6 +44,11 @@ static DefaultGUIModel::variable_t vars[] = {
 	{
 	    "y_kf","output", DefaultGUIModel::OUTPUT,
 	},
+	{
+	    "y_skf","output", DefaultGUIModel::OUTPUT,
+	},
+
+
 	{ "X_out", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
   {
     "x1", "Tooltip description", DefaultGUIModel::OUTPUT,
@@ -103,21 +108,18 @@ SsObsv::execute(void)
 	double ymeas = input(1);
 
 	switch_idx = input(2);
-	//switchSys(switch_idx);
+	skf.switchSys(switch_idx);
 
 
 	obsv.predict(u_total, ymeas);
-	y = obsv.y;
-
 	kalman.predict(u_total, ymeas);
+	skf.predict(u_total,ymeas);
 
-
-	//stepObsv(u_total, input(1));
-	//setState("x1",x(0));
-	//setState("x2",x(1));
+	y = obsv.y;
 	
 	output(0) = y;
 	output(1) = kalman.y;
+	output(2) = skf.y;
 
 	//std::vector<double>xstd(x.data(),x.data()+x.size());
 
@@ -166,13 +168,14 @@ void SsObsv::resetAllSys(void)
 	sys2.resetSys();
 
 
-
-
 	obsv.resetSys();
 	obsv.x.randn();
 
 	kalman.resetSys();
 	kalman.x.randn();
+
+	skf.resetSys();
+	skf.x.randn();
 
 }
 
@@ -195,10 +198,14 @@ SsObsv::initParameters(void)
 
 
 	kalman = glds_obsv();
-
 	obsv = lds_obsv();
-	//obsv.K = 0*obsv.K;
-	//obsv.predict(0,0);
+	skf = s_glds_obsv();
+	skf.predict(10,100);
+skf.predict(1,10);
+skf.predict(2,3);
+skf.predict(4,0);
+	std::cout<<"\n\nSKIF TEST:"<<skf.switchScale;
+	std::cout<<"\nST2"<<skf.P;
 
 }
 
