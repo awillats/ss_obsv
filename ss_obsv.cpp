@@ -165,12 +165,14 @@ void SsObsv::resetAllSys(void)
 	sys1.resetSys();
 	sys2.resetSys();
 
-	obsv.resetSys();
 
+
+
+	obsv.resetSys();
 	obsv.x.randn();
 
-	std::cout<<obsv.x;
-	std::cout<<"oX\n";
+	kalman.resetSys();
+	kalman.x.randn();
 
 }
 
@@ -268,6 +270,7 @@ SsObsv::bBttn_event(void)
 
 void SsObsv::zBttn_event(bool tog)
 {
+	kalman.toggleUpdating();
 	//initParameters();
 
 	if (tog)
