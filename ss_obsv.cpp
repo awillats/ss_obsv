@@ -38,18 +38,15 @@ static DefaultGUIModel::variable_t vars[] = {
     DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE,
   },
 
-	{
-	    "y_det","output", DefaultGUIModel::OUTPUT,
-	},
-	{
-	    "y_kf","output", DefaultGUIModel::OUTPUT,
-	},
-	{
-	    "y_skf","output", DefaultGUIModel::OUTPUT,
-	},
-
+	{"y_det","output", DefaultGUIModel::OUTPUT,},
+	{"y_kf","output", DefaultGUIModel::OUTPUT,},
+	{"y_skf","output", DefaultGUIModel::OUTPUT,},
 
 	{ "X_out", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
+	{ "X_kf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
+	{ "X_switch", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
+
+
   {
     "x1", "Tooltip description", DefaultGUIModel::OUTPUT,
   },
@@ -121,11 +118,9 @@ SsObsv::execute(void)
 	output(1) = kalman.y;
 	output(2) = skf.y;
 
-	//std::vector<double>xstd(x.data(),x.data()+x.size());
-
-	//outputVector(1) = xstd;
-	//output(2) = x(0);
-	//output(3) = x(1);
+	outputVector(3) = arma::conv_to<stdVec>::from(x);
+	outputVector(4) = arma::conv_to<stdVec>::from(kalman.x);
+	outputVector(5) = arma::conv_to<stdVec>::from(skf.x);
 	
   return;
 }

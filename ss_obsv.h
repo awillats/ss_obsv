@@ -78,7 +78,6 @@ double switch_scale;
 	Eigen::RowVector2d C;
 	float D;
 
-
   	Eigen::RowVector2d K_obsv;
   	Eigen::RowVector2d K_obsv_;
   	Eigen::RowVector2d K_obsv2;
