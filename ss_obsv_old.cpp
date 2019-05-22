@@ -1,4 +1,5 @@
-/*
+
+   /*
  * Copyright (C) 2011 Georgia Institute of Technology, University of Utah,
  * Weill Cornell Medical College
  *
@@ -38,15 +39,19 @@ static DefaultGUIModel::variable_t vars[] = {
     DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE,
   },
 
-	{"y_det","output", DefaultGUIModel::OUTPUT,},
-	{"y_kf","output", DefaultGUIModel::OUTPUT,},
-	{"y_skf","output", DefaultGUIModel::OUTPUT,},
-
+	{
+	    "y_det","output", DefaultGUIModel::OUTPUT,
+	},
+	{
+	    "y_kf","output", DefaultGUIModel::OUTPUT,
+	},
 	{ "X_out", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
-	{ "X_kf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
-	{ "X_switch", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
-	{"debug","normP",DefaultGUIModel::OUTPUT},
-
+  {
+    "x1", "Tooltip description", DefaultGUIModel::OUTPUT,
+  },
+  {
+    "x2", "Tooltip description", DefaultGUIModel::OUTPUT,
+  },
 
 
 	{
@@ -99,24 +104,27 @@ SsObsv::execute(void)
 	double ymeas = input(1);
 
 	switch_idx = input(2);
-	skf.switchSys(switch_idx);
+	//switchSys(switch_idx);
 
 
 	obsv.predict(u_total, ymeas);
-	kalman.predict(u_total, ymeas);
-	skf.predict(u_total,ymeas);
-
 	y = obsv.y;
+
+	kalman.predict(u_total, ymeas);
+
+
+	//stepObsv(u_total, input(1));
+	//setState("x1",x(0));
+	//setState("x2",x(1));
 	
 	output(0) = y;
 	output(1) = kalman.y;
-	output(2) = skf.y;
 
-	outputVector(3) = arma::conv_to<stdVec>::from(x);
-	outputVector(4) = arma::conv_to<stdVec>::from(kalman.x);
-	outputVector(5) = arma::conv_to<stdVec>::from(skf.x);
+	//std::vector<double>xstd(x.data(),x.data()+x.size());
 
-	output(6) = arma::norm(kalman.P);
+	//outputVector(1) = xstd;
+	//output(2) = x(0);
+	//output(3) = x(1);
 	
   return;
 }
@@ -127,27 +135,23 @@ void SsObsv::switchSys(int idx)
 	x = sys.x;//snapshot current system state
 	//at the moment x is held in ss_plant and operated on
 	sys = ((idx==0) ? sys1 : sys2);
-
 	A = sys.A;
 	B = sys.B;
 	C = sys.C;
 	D = sys.D;
 	sys.x = x; //make sure new system has up to date state
 }
-
 void
 SsObsv::loadGains(void)
 {	
 	//read in system params from file
 	std::string homepath = getenv("HOME");
 	std::ifstream myfile;
-
 	//read in observer gains from file
 	myfile.open(homepath+"/RTXI/modules/ss_modules/ss_obsv/params/obsv_params.txt");
 	pullParamLine(myfile); //gets nx
 	K_obsv = stdVec2EigenRV(pullParamLine(myfile), K_obsv.cols());
 	myfile.close();
-
 	K_obsv_=K_obsv;
 	K_obsv2=K_obsv/switch_scale;
 }
@@ -158,15 +162,15 @@ void SsObsv::resetAllSys(void)
 	sys1.resetSys();
 	sys2.resetSys();
 
-
 	obsv.resetSys();
+
 	obsv.x.randn();
 
 	kalman.resetSys();
 	kalman.x.randn();
 
-	skf.resetSys();
-	skf.x.randn();
+	std::cout<<obsv.x;
+	std::cout<<"oX\n";
 
 }
 
@@ -188,35 +192,11 @@ SsObsv::initParameters(void)
 	//loadGains();
 
 
-	
-	obsv = lds_obsv();
 	kalman = glds_obsv();
-	skf = s_glds_obsv();
-	//kalman.isUpdating=-1;
 
-/*
-	obsv.predict(4,5);
-	kalman.predict(4,5);
-
-	obsv.predict(0,5);
-	kalman.predict(0,5);
-std::cout<<">"<<obsv.y<<"_"<<kalman.y<<"<";
-
-	obsv.predict(0,5);
-	kalman.predict(0,5);
-
-	obsv.predict(0,5);
-	kalman.predict(0,5);
-	std::cout<<">"<<obsv.y<<"_"<<kalman.y<<"<";
-*/
-/*
-	skf.predict(10,100);
-skf.predict(1,10);
-skf.predict(2,3);
-skf.predict(4,0);
-	std::cout<<"\n\nSKIF TEST:"<<skf.switchScale;
-	std::cout<<"\nST2"<<skf.P;
-*/
+	obsv = lds_obsv();
+	//obsv.K = 0*obsv.K;
+	//obsv.predict(0,0);
 
 }
 
@@ -288,7 +268,6 @@ SsObsv::bBttn_event(void)
 
 void SsObsv::zBttn_event(bool tog)
 {
-	kalman.toggleUpdating();
 	//initParameters();
 
 	if (tog)
