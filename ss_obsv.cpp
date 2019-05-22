@@ -162,12 +162,11 @@ void SsObsv::resetAllSys(void)
 	obsv.resetSys();
 	obsv.x.randn();
 
-	kalman.resetSys();
-	kalman.x.randn();
-
 	skf.resetSys();
 	skf.x.randn();
 
+	kalman.resetSys();
+	kalman.x.randn();
 }
 
 
@@ -189,34 +188,13 @@ SsObsv::initParameters(void)
 
 
 	
-	obsv = lds_obsv();
-	kalman = glds_obsv();
+	obsv = lds_obsv();	
 	skf = s_glds_obsv();
-	//kalman.isUpdating=-1;
+	kalman = glds_obsv();
 
-/*
-	obsv.predict(4,5);
-	kalman.predict(4,5);
+	std::cout<<kalman.Q;
+	std::cout<<kalman.R;
 
-	obsv.predict(0,5);
-	kalman.predict(0,5);
-std::cout<<">"<<obsv.y<<"_"<<kalman.y<<"<";
-
-	obsv.predict(0,5);
-	kalman.predict(0,5);
-
-	obsv.predict(0,5);
-	kalman.predict(0,5);
-	std::cout<<">"<<obsv.y<<"_"<<kalman.y<<"<";
-*/
-/*
-	skf.predict(10,100);
-skf.predict(1,10);
-skf.predict(2,3);
-skf.predict(4,0);
-	std::cout<<"\n\nSKIF TEST:"<<skf.switchScale;
-	std::cout<<"\nST2"<<skf.P;
-*/
 
 }
 

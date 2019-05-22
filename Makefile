@@ -6,14 +6,14 @@ PLDS_DIR=$(HELP_DIR)/plds_adam/plds_adamX/plds_adamX
 HEADERS = ss_obsv.h\
 	$(PLDS_DIR)/plds_adam_funs.hpp\
 	$(PLDS_DIR)/plds_ctrl_adam.hpp\
-	$(PLDS_DIR)/plds_obsv_adam_old.hpp
+	$(PLDS_DIR)/plds_obsv_adam.hpp
 
 SOURCES = ss_obsv.cpp\
           moc_ss_obsv.cpp\
 	$(HELP_DIR)/StAC_rtxi/dataFuns.cpp\
 	$(PLDS_DIR)/plds_adam_funs.cpp\
 	$(PLDS_DIR)/plds_ctrl_adam.cpp\
-	$(PLDS_DIR)/plds_obsv_adam_old.cpp
+	$(PLDS_DIR)/plds_obsv_adam.cpp
 
 LIBS = 
 
