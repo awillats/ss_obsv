@@ -267,6 +267,7 @@ SsObsv::bBttn_event(void)
 void SsObsv::zBttn_event(bool tog)
 {
 	kalman.toggleUpdating();
+	skf.toggleUpdating();
 	//initParameters();
 
 	if (tog)
