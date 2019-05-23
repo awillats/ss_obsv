@@ -186,13 +186,11 @@ SsObsv::initParameters(void)
 
 	//loadGains();
 
-
-	
 	obsv = lds_obsv();	
 	skf = s_glds_obsv();
 	kalman = glds_obsv();
 
-	std::cout<<kalman.Q;
+	std::cout<<"."<<kalman.Q;
 	std::cout<<kalman.R;
 
 
