@@ -157,6 +157,7 @@ SsObsv::initParameters(void)
 	kalman = glds_obsv();
 
 	ppf = plds_obsv();
+	std::cout<<"PPF, dt:"<<ppf.dt<<", nl_d:"<<ppf.nl_d;
 }
 
 void
