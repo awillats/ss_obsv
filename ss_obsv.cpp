@@ -41,11 +41,13 @@ static DefaultGUIModel::variable_t vars[] = {
 	{"y_det","output", DefaultGUIModel::OUTPUT,},
 	{"y_kf","output", DefaultGUIModel::OUTPUT,},
 	{"y_skf","output", DefaultGUIModel::OUTPUT,},
+	{"y_ppf","output", DefaultGUIModel::OUTPUT,},
+	{"expy_ppf","output", DefaultGUIModel::OUTPUT,},
 
 	{ "X_out", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
 	{ "X_kf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
 	{ "X_switch", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
-	{"debug","normP",DefaultGUIModel::OUTPUT},
+	{ "debug","normP", DefaultGUIModel::OUTPUT},
 
 
 
@@ -55,6 +57,7 @@ static DefaultGUIModel::variable_t vars[] = {
 	{
 		"y_meas","measured y", DefaultGUIModel::INPUT,
 	},
+	{"spike_meas","spikes in", DefaultGUIModel::INPUT,},
 	{"q","state_index", DefaultGUIModel::INPUT | DefaultGUIModel::INTEGER},
 
 };
@@ -80,78 +83,41 @@ SsObsv::~SsObsv(void)
 {
 }
 
-/*
-void SsObsv::stepObsv(double uin, double ymeas)
-{
-	u = uin;
-	x = A*x + B*u - K_obsv.transpose()*(y-ymeas);//transpose?
-	y = C*x;
-	sys.x=x;
-	sys.y=y;
-}
-*/
 void
 SsObsv::execute(void)
 {
 	double u_pre = input(0);
 	double u_total = u_pre;
-
 	double ymeas = input(1);
+	double spike_meas = input(2);
 
-	switch_idx = input(2);
+	switch_idx = input(3);
 	skf.switchSys(switch_idx);
-
 
 	obsv.predict(u_total, ymeas);
 	kalman.predict(u_total, ymeas);
 	skf.predict(u_total,ymeas);
+
+	ppf.predict(u_total, spike_meas);
+
 
 	y = obsv.y;
 	
 	output(0) = y;
 	output(1) = kalman.y;
 	output(2) = skf.y;
+	output(3) = ppf.y;
+	output(4) = ppf.y_nl;
 
-	outputVector(3) = arma::conv_to<stdVec>::from(x);
-	outputVector(4) = arma::conv_to<stdVec>::from(kalman.x);
-	outputVector(5) = arma::conv_to<stdVec>::from(skf.x);
+	outputVector(5) = arma::conv_to<stdVec>::from(x);
+	outputVector(6) = arma::conv_to<stdVec>::from(kalman.x);
+	outputVector(7) = arma::conv_to<stdVec>::from(skf.x);
 
-	output(6) = arma::norm(kalman.P);
+	output(8) = arma::norm(kalman.P);
 	
   return;
 }
 
-/*
-void SsObsv::switchSys(int idx)
-{
-	x = sys.x;//snapshot current system state
-	//at the moment x is held in ss_plant and operated on
-	sys = ((idx==0) ? sys1 : sys2);
-
-	A = sys.A;
-	B = sys.B;
-	C = sys.C;
-	D = sys.D;
-	sys.x = x; //make sure new system has up to date state
-}
-
-void
-SsObsv::loadGains(void)
-{	
-	//read in system params from file
-	std::string homepath = getenv("HOME");
-	std::ifstream myfile;
-
-	//read in observer gains from file
-	myfile.open(homepath+"/RTXI/modules/ss_modules/ss_obsv/params/obsv_params.txt");
-	pullParamLine(myfile); //gets nx
-	K_obsv = stdVec2EigenRV(pullParamLine(myfile), K_obsv.cols());
-	myfile.close();
-
-	K_obsv_=K_obsv;
-	K_obsv2=K_obsv/switch_scale;
-}
-*/
 void SsObsv::resetAllSys(void)
 {
 	sys.resetSys();
@@ -167,9 +133,9 @@ void SsObsv::resetAllSys(void)
 
 	kalman.resetSys();
 	kalman.x.randn();
+	ppf.resetSys();
+	ppf.x.randn();
 }
-
-
 
 
 void
@@ -190,10 +156,7 @@ SsObsv::initParameters(void)
 	skf = s_glds_obsv();
 	kalman = glds_obsv();
 
-	std::cout<<"."<<kalman.Q;
-	std::cout<<kalman.R;
-
-
+	ppf = plds_obsv();
 }
 
 void

@@ -70,6 +70,8 @@ double switch_scale;
 
   lds_obsv obsv;
   glds_obsv kalman;
+  plds_obsv ppf;
+
   s_glds_obsv skf;
 
 /*
