@@ -38,27 +38,29 @@ static DefaultGUIModel::variable_t vars[] = {
     DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE,
   },
 
-	{"y_det","output", DefaultGUIModel::OUTPUT,},
-	{"y_kf","output", DefaultGUIModel::OUTPUT,},
-	{"y_skf","output", DefaultGUIModel::OUTPUT,},
-	{"y_ppf","output", DefaultGUIModel::OUTPUT,},
-	{"expy_ppf","output", DefaultGUIModel::OUTPUT,},
+	{"y_det","output", DefaultGUIModel::OUTPUT,}, //0
+	{"y_kf","output", DefaultGUIModel::OUTPUT,}, //1
+	{"y_skf","output", DefaultGUIModel::OUTPUT,}, //2
+	{"y_ppf","output", DefaultGUIModel::OUTPUT,}, //3
+	{"expy_ppf","output", DefaultGUIModel::OUTPUT,}, //4
+	{"y_sppf","linear", DefaultGUIModel::OUTPUT,}, //5
 
-	{ "X_out", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
-	{ "X_kf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
-	{ "X_switch", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, },
-	{ "debug","normP", DefaultGUIModel::OUTPUT},
+	{ "X_out", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //6
+	{ "X_kf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //7
+	{ "X_switch", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //8
+	{ "X_ppf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //9
+	{ "X_sppf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //10
+
+	{ "debug","normP", DefaultGUIModel::OUTPUT}, //11
 
 
 
-	{
-		"ustim","input", DefaultGUIModel::INPUT,
-	},
-	{
-		"y_meas","measured y", DefaultGUIModel::INPUT,
-	},
-	{"spike_meas","spikes in", DefaultGUIModel::INPUT,},
-	{"q","state_index", DefaultGUIModel::INPUT | DefaultGUIModel::INTEGER},
+	{"ustim","input", DefaultGUIModel::INPUT,}, //0
+
+	{"y_meas","measured y", DefaultGUIModel::INPUT,}, //1
+	{"spike_meas","spikes in", DefaultGUIModel::INPUT,}, //2
+
+	{"q","state_index", DefaultGUIModel::INPUT | DefaultGUIModel::INTEGER}, //3
 
 };
 
@@ -86,6 +88,7 @@ SsObsv::~SsObsv(void)
 void
 SsObsv::execute(void)
 {
+	//convert these to data_t?
 	double u_pre = input(0);
 	double u_total = u_pre;
 	double ymeas = input(1);
@@ -93,13 +96,14 @@ SsObsv::execute(void)
 
 	switch_idx = input(3);
 	skf.switchSys(switch_idx);
+	sppf.switchSys(switch_idx);
 
 	obsv.predict(u_total, ymeas);
 	kalman.predict(u_total, ymeas);
 	skf.predict(u_total,ymeas);
 
 	ppf.predict(u_total, spike_meas);
-
+	sppf.predict(u_total, spike_meas);
 
 	y = obsv.y;
 	
@@ -109,11 +113,17 @@ SsObsv::execute(void)
 	output(3) = ppf.y;
 	output(4) = ppf.y_nl;
 
-	outputVector(5) = arma::conv_to<stdVec>::from(x);
-	outputVector(6) = arma::conv_to<stdVec>::from(kalman.x);
-	outputVector(7) = arma::conv_to<stdVec>::from(skf.x);
+	output(5) = sppf.y;
 
-	output(8) = arma::norm(kalman.P);
+
+	outputVector(6) = arma::conv_to<stdVec>::from(x);
+	outputVector(7) = arma::conv_to<stdVec>::from(kalman.x);
+	outputVector(8) = arma::conv_to<stdVec>::from(skf.x);
+
+	outputVector(9) = arma::conv_to<stdVec>::from(ppf.x);
+	outputVector(10) = arma::conv_to<stdVec>::from(sppf.x);
+
+	output(11) = arma::norm(kalman.P);
 	
   return;
 }
@@ -133,8 +143,12 @@ void SsObsv::resetAllSys(void)
 
 	kalman.resetSys();
 	kalman.x.randn();
+
 	ppf.resetSys();
 	ppf.x.randn();
+
+	sppf.resetSys();
+	sppf.x.randn();
 }
 
 
@@ -157,6 +171,9 @@ SsObsv::initParameters(void)
 	kalman = glds_obsv();
 
 	ppf = plds_obsv();
+	sppf = s_plds_obsv();
+
+
 	std::cout<<"PPF, dt:"<<ppf.dt<<", nl_d:"<<ppf.nl_d;
 }
 
@@ -229,10 +246,13 @@ SsObsv::bBttn_event(void)
 void SsObsv::zBttn_event(bool tog)
 {
 	kalman.toggleUpdating();
-	std::cout<<"\nskf report pre:"<<skf.isUpdating;
+		//std::cout<<"\nskf report pre:"<<skf.isUpdating;
 	skf.toggleUpdating();
-	std::cout<<"skf report post:"<<skf.isUpdating<<"\n";
+		//std::cout<<"skf report post:"<<skf.isUpdating<<"\n";
 	//initParameters();
+	ppf.toggleUpdating();
+	sppf.toggleUpdating();
+
 
 	if (tog)
 	{

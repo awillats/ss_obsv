@@ -73,6 +73,7 @@ double switch_scale;
   plds_obsv ppf;
 
   s_glds_obsv skf;
+  s_plds_obsv sppf;
 
 /*
 	Eigen::Matrix2d A;
