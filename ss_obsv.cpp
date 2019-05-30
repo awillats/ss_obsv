@@ -17,13 +17,14 @@
  */
 
 /*
- * This is a template implementation file for a user module derived from
- * DefaultGUIModel with a custom GUI.
+ * do gui elements last, just get outputs to screen
+ * 
  */
 
 #include "ss_obsv.h"
-#include <iostream>
 #include <main_window.h>
+
+using namespace adam;
 
 extern "C" Plugin::Object*
 createRTXIPlugin(void)
@@ -32,25 +33,41 @@ createRTXIPlugin(void)
 }
 
 static DefaultGUIModel::variable_t vars[] = {
-	{
-		"y","output", DefaultGUIModel::OUTPUT,
-	},
   {
-    "x1", "Tooltip description", DefaultGUIModel::OUTPUT,
-  },
-  {
-    "x2", "Tooltip description", DefaultGUIModel::OUTPUT,
+    "State-space plant", "Tooltip description",
+    DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE,
   },
 
-	{
-		"ustim","input", DefaultGUIModel::INPUT,
-	},
+	{"y_det","output", DefaultGUIModel::OUTPUT,}, //0
+	{"y_kf","output", DefaultGUIModel::OUTPUT,}, //1
+	{"y_skf","output", DefaultGUIModel::OUTPUT,}, //2
+	{"y_ppf","output", DefaultGUIModel::OUTPUT,}, //3
+	{"expy_ppf","output", DefaultGUIModel::OUTPUT,}, //4
+	{"y_sppf","linear", DefaultGUIModel::OUTPUT,}, //5
+
+	{ "X_out", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //6
+	{ "X_kf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //7
+	{ "X_switch", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //8
+	{ "X_ppf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //9
+	{ "X_sppf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //10
+
+	{ "debug","normP", DefaultGUIModel::OUTPUT}, //11
+
+
+
+	{"ustim","input", DefaultGUIModel::INPUT,}, //0
+
+	{"y_meas","measured y", DefaultGUIModel::INPUT,}, //1
+	{"spike_meas","spikes in", DefaultGUIModel::INPUT,}, //2
+
+	{"q","state_index", DefaultGUIModel::INPUT | DefaultGUIModel::INTEGER}, //3
+
 };
 
 static size_t num_vars = sizeof(vars) / sizeof(DefaultGUIModel::variable_t);
 
 SsObsv::SsObsv(void)
-  : DefaultGUIModel("State-space observer (Kalman Filter)", ::vars, ::num_vars)
+  : DefaultGUIModel("SsObsv with Custom GUI", ::vars, ::num_vars)
 {
   setWhatsThis("<p><b>SsObsv:</b><br>QWhatsThis description.</p>");
   DefaultGUIModel::createGUI(vars,
@@ -68,96 +85,96 @@ SsObsv::~SsObsv(void)
 {
 }
 
-
-void
-SsObsv::loadSys(void)
-{	
-	std::ifstream myfile;
-	myfile.open("../ss_ctrl/params/obsv_params.txt");
-
-	//std::cout<<"load works here"<<"\n";
-	// numA;
-	//halp::simpleFun();
-	pullParamLine(myfile); //gets nx
-
-	std::vector<double> numA = pullParamLine(myfile); 	
-	Eigen::Map<Eigen::Matrix2d> tA(numA.data(),A.rows(),A.cols());
-	A = tA;
-	
-	std::vector<double> numB = pullParamLine(myfile); 	
-	Eigen::Map<Eigen::Vector2d> tB(numB.data(),B.rows(),1);
-	B = tB;
-
-	std::vector<double> numC = pullParamLine(myfile); 	
-	Eigen::Map<Eigen::RowVector2d> tC(numC.data(),1,C.cols());
-	C = tC;
-
-	//For some silly reason, can't load D this way
-	std::vector<double> numD = pullParamLine(myfile); 	
-	D = numD[0];
-	
-	//K,Q,R
-
-
-
-	myfile.close();
-}
-
-void 
-SsObsv::printSys(void)
-{
-  std::cout <<"Here is the matrix A:\n" << A << "\n";
-  std::cout <<"Here is the matrix B:\n" << B << "\n";
-  std::cout <<"Here is the matrix C:\n" << C << "\n";
-  std::cout <<"Here is the matrix D:\n" << D << "\n";
-}
-
-void SsObsv::resetSys(void)
-{
-	x << 0,0;
-	y = 0;
-	u = 0;
-}
-
-
-void SsObsv::stepKF(double uin)
-{
-	//prediction
-	Eigen::Vector2d xpred;
-	Eigen::Matrix2d Ppred;
-	Eigen::Vector2d xup;
-	Eigen::Matrix2d Pup;
-
-	xpred = A*x+B*u;
-	Ppred = A*P*A.transpose()+Q;
-
-	//update
-
-	Eigen::Matrix2d IKC = Eigen::Matrix2d::Identity() - K*C; 
-
-	xup = xpred + K*(y-C*xpred);
-	Ppred = IKC*Ppred*IKC.transpose() + K*R*K.transpose();
-
-	//update gain
-	Eigen::Matrix2d CPCR = C*Ppred*C.transpose() + R;
-	K = Ppred*C.transpose() *CPCR.inverse();
-}
-
-
-
 void
 SsObsv::execute(void)
 {
-  stepKF(input(0));
+	//convert these to data_t?
+	double u_pre = input(0);
+	double u_total = u_pre;
+	double ymeas = input(1);
+	double spike_meas = input(2);
+
+	switch_idx = input(3);
+	skf.switchSys(switch_idx);
+	sppf.switchSys(switch_idx);
+
+	obsv.predict(u_total, ymeas);
+	kalman.predict(u_total, ymeas);
+	skf.predict(u_total,ymeas);
+
+	ppf.predict(u_total, spike_meas);
+	sppf.predict(u_total, spike_meas);
+
+	y = obsv.y;
+	
+	output(0) = y;
+	output(1) = kalman.y;
+	output(2) = skf.y;
+	output(3) = ppf.y;
+	output(4) = ppf.y_nl;
+
+	output(5) = sppf.y;
+
+
+	outputVector(6) = arma::conv_to<stdVec>::from(x);
+	outputVector(7) = arma::conv_to<stdVec>::from(kalman.x);
+	outputVector(8) = arma::conv_to<stdVec>::from(skf.x);
+
+	outputVector(9) = arma::conv_to<stdVec>::from(ppf.x);
+	outputVector(10) = arma::conv_to<stdVec>::from(sppf.x);
+
+	output(11) = arma::norm(kalman.P);
+	
   return;
 }
+
+void SsObsv::resetAllSys(void)
+{
+	sys.resetSys();
+	sys1.resetSys();
+	sys2.resetSys();
+
+
+	obsv.resetSys();
+	obsv.x.randn();
+
+	skf.resetSys();
+	skf.x.randn();
+
+	kalman.resetSys();
+	kalman.x.randn();
+
+	ppf.resetSys();
+	ppf.x.randn();
+
+	sppf.resetSys();
+	sppf.x.randn();
+}
+
 
 void
 SsObsv::initParameters(void)
 {
-	loadSys();
-	resetSys();
-	printSys();
+   switch_scale=1.4;
+
+	sys = lds_adam();
+	sys.initSys();
+
+	sys1 = sys;
+	sys2 = sys;
+	sys2.B = sys2.B*switch_scale;
+
+	//loadGains();
+
+	obsv = lds_obsv();	
+	skf = s_glds_obsv();
+	kalman = glds_obsv();
+
+	ppf = plds_obsv();
+	sppf = s_plds_obsv();
+
+
+	std::cout<<"PPF, dt:"<<ppf.dt<<", nl_d:"<<ppf.nl_d;
 }
 
 void
@@ -169,7 +186,6 @@ SsObsv::update(DefaultGUIModel::update_flags_t flag)
       break;
 
     case MODIFY:
-      some_parameter = getParameter("GUI label").toDouble();
       break;
 
     case UNPAUSE:
@@ -194,16 +210,23 @@ SsObsv::customizeGUI(void)
 
   QGroupBox* button_group = new QGroupBox;
 
-  QPushButton* abutton = new QPushButton("Load System");
-  QPushButton* bbutton = new QPushButton("Reset System");
+  QPushButton* abutton = new QPushButton("Load Matrices");
+  QPushButton* bbutton = new QPushButton("Reset Sys");
+
+  QPushButton* zbutton = new QPushButton("Set ctrl gain to 0");
+  zbutton->setCheckable(true);
+
   QHBoxLayout* button_layout = new QHBoxLayout;
   button_group->setLayout(button_layout);
   button_layout->addWidget(abutton);
   button_layout->addWidget(bbutton);
+  button_layout->addWidget(zbutton);
   QObject::connect(abutton, SIGNAL(clicked()), this, SLOT(aBttn_event()));
   QObject::connect(bbutton, SIGNAL(clicked()), this, SLOT(bBttn_event()));
+  QObject::connect(zbutton, SIGNAL(toggled(bool)), this, SLOT(zBttn_event(bool)));
 
   customlayout->addWidget(button_group, 0, 0);
+
   setLayout(customlayout);
 }
 
@@ -211,12 +234,36 @@ SsObsv::customizeGUI(void)
 void
 SsObsv::aBttn_event(void)
 {
-	loadSys();
-	printSys();
+	initParameters();
 }
-
 void
 SsObsv::bBttn_event(void)
 {
-	resetSys();
+	resetAllSys();
 }
+
+
+void SsObsv::zBttn_event(bool tog)
+{
+	kalman.toggleUpdating();
+		//std::cout<<"\nskf report pre:"<<skf.isUpdating;
+	skf.toggleUpdating();
+		//std::cout<<"skf report post:"<<skf.isUpdating<<"\n";
+	//initParameters();
+	ppf.toggleUpdating();
+	sppf.toggleUpdating();
+
+
+	if (tog)
+	{
+		obsv.K = 0*obsv.K;
+	}
+	else
+	{
+		lds_obsv newObsv = lds_obsv();
+		obsv.K = newObsv.K;
+	}
+
+	
+}
+

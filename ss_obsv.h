@@ -21,9 +21,25 @@
  * DefaultGUIModel with a custom GUI.
  */
 
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+
+//#include "help.h"
+
 #include <default_gui_model.h>
-#include "../../../module_help/eigen/Eigen/Dense"
-#include "../../../module_help/StAC_rtxi/dataFuns.h"//for pullParamLine
+
+
+// in module_help
+#include <eigen/Eigen/Dense>
+#include <StAC_rtxi/dataFuns.h>//for pullParamLine
+
+// plds
+#include <dynCtrlEst>
+#include <plds_adam_funs.hpp> //probably unnecessary
+#include <plds_obsv_adam.hpp>
 
 class SsObsv : public DefaultGUIModel
 {
@@ -42,32 +58,44 @@ protected:
   virtual void update(DefaultGUIModel::update_flags_t);
 
 private:
-  double some_parameter;
-  double some_state;
   double period;
 
-  	Eigen::Matrix2d A;
+
+int switch_idx;
+double switch_scale;
+  lds_adam sys;
+  lds_adam sys1;
+  lds_adam sys2;
+
+
+  lds_obsv obsv;
+  glds_obsv kalman;
+  plds_obsv ppf;
+
+  s_glds_obsv skf;
+  s_plds_obsv sppf;
+
+/*
+	Eigen::Matrix2d A;
 	Eigen::Vector2d B;
 	Eigen::RowVector2d C;
 	float D;
 
-	Eigen::Vector2d x;
-	float y;
-	float u;
+  	Eigen::RowVector2d K_obsv;
+  	Eigen::RowVector2d K_obsv_;
+  	Eigen::RowVector2d K_obsv2;
+*/
+	adam::Vec x;
+	adam::data_t y;
+	adam::data_t u;
 
-	Eigen::RowVector2d K;
-	Eigen::Matrix2d P;
-	Eigen::Matrix2d Q;
-	double R;
+  void switchSys(int);
+  void stepObsv(double, double);
+  void loadGains(void);
 
-
-
-
-  void loadSys();
-  void printSys();
-  void resetSys();
-  void stepKF(double uin);
-
+  void resetAllSys(void);
+  void printSys(void);
+  void stepPlant(double,double);
   void initParameters();
 
 private slots:
@@ -76,4 +104,34 @@ private slots:
 
   void aBttn_event(void);
   void bBttn_event(void);
+  void zBttn_event(bool);
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
