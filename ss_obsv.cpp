@@ -95,6 +95,10 @@ SsObsv::execute(void)
 	double spike_meas = input(2);
 
 	switch_idx = input(3);
+	if (switch_idx>1)
+	{
+		std::cout<<"WARNING INPUT TO OBSV IS BAD";
+	}
 	skf.switchSys(switch_idx);
 	sppf.switchSys(switch_idx);
 
