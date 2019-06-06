@@ -38,20 +38,24 @@ static DefaultGUIModel::variable_t vars[] = {
     DefaultGUIModel::PARAMETER | DefaultGUIModel::DOUBLE,
   },
 
+/*
 	{"y_det","output", DefaultGUIModel::OUTPUT,}, //0
 	{"y_kf","output", DefaultGUIModel::OUTPUT,}, //1
 	{"y_skf","output", DefaultGUIModel::OUTPUT,}, //2
 	{"y_ppf","output", DefaultGUIModel::OUTPUT,}, //3
 	{"expy_ppf","output", DefaultGUIModel::OUTPUT,}, //4
+*/
 	{"y_sppf","linear", DefaultGUIModel::OUTPUT,}, //5
 
+/*
 	{ "X_out", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //6
 	{ "X_kf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //7
 	{ "X_switch", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //8
 	{ "X_ppf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //9
+*/
 	{ "X_sppf", "testVec", DefaultGUIModel::OUTPUT | DefaultGUIModel::VECTORDOUBLE, }, //10
 
-	{ "debug","normP", DefaultGUIModel::OUTPUT}, //11
+//	{ "debug","normP", DefaultGUIModel::OUTPUT}, //11
 
 
 
@@ -95,27 +99,32 @@ SsObsv::execute(void)
 	double spike_meas = input(2);
 
 	switch_idx = input(3);
-	skf.switchSys(switch_idx);
+	//skf.switchSys(switch_idx);
 	sppf.switchSys(switch_idx);
-
+/*
 	obsv.predict(u_total, ymeas);
 	kalman.predict(u_total, ymeas);
 	skf.predict(u_total,ymeas);
 
 	ppf.predict(u_total, spike_meas);
+*/
 	sppf.predict(u_total, spike_meas);
 
-	y = obsv.y;
+	y = sppf.y;//obsv.y;
 	
 	output(0) = y;
+/*
 	output(1) = kalman.y;
 	output(2) = skf.y;
 	output(3) = ppf.y;
 	output(4) = ppf.y_nl;
 
 	output(5) = sppf.y;
+*/
 
+	outputVector(1) = arma::conv_to<stdVec>::from(sppf.x);
 
+/*
 	outputVector(6) = arma::conv_to<stdVec>::from(x);
 	outputVector(7) = arma::conv_to<stdVec>::from(kalman.x);
 	outputVector(8) = arma::conv_to<stdVec>::from(skf.x);
@@ -124,12 +133,14 @@ SsObsv::execute(void)
 	outputVector(10) = arma::conv_to<stdVec>::from(sppf.x);
 
 	output(11) = arma::norm(kalman.P);
+*/
 	
   return;
 }
 
 void SsObsv::resetAllSys(void)
 {
+/*
 	sys.resetSys();
 	sys1.resetSys();
 	sys2.resetSys();
@@ -146,7 +157,7 @@ void SsObsv::resetAllSys(void)
 
 	ppf.resetSys();
 	ppf.x.randn();
-
+*/
 	sppf.resetSys();
 	sppf.x.randn();
 }
@@ -156,7 +167,7 @@ void
 SsObsv::initParameters(void)
 {
    switch_scale=1.4;
-
+/*
 	sys = lds_adam();
 	sys.initSys();
 
@@ -171,10 +182,11 @@ SsObsv::initParameters(void)
 	kalman = glds_obsv();
 
 	ppf = plds_obsv();
+*/
 	sppf = s_plds_obsv();
 
 
-	std::cout<<"PPF, dt:"<<ppf.dt<<", nl_d:"<<ppf.nl_d;
+//	std::cout<<"PPF, dt:"<<ppf.dt<<", nl_d:"<<ppf.nl_d;
 }
 
 void
@@ -245,15 +257,17 @@ SsObsv::bBttn_event(void)
 
 void SsObsv::zBttn_event(bool tog)
 {
+/*
 	kalman.toggleUpdating();
 		//std::cout<<"\nskf report pre:"<<skf.isUpdating;
 	skf.toggleUpdating();
 		//std::cout<<"skf report post:"<<skf.isUpdating<<"\n";
 	//initParameters();
 	ppf.toggleUpdating();
+*/
 	sppf.toggleUpdating();
 
-
+/*
 	if (tog)
 	{
 		obsv.K = 0*obsv.K;
@@ -263,7 +277,7 @@ void SsObsv::zBttn_event(bool tog)
 		lds_obsv newObsv = lds_obsv();
 		obsv.K = newObsv.K;
 	}
-
+*/
 	
 }
 
