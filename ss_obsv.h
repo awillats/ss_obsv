@@ -63,6 +63,8 @@ private:
 
 int switch_idx;
 double switch_scale;
+
+/*
   lds_adam sys;
   lds_adam sys1;
   lds_adam sys2;
@@ -73,6 +75,8 @@ double switch_scale;
   plds_obsv ppf;
 
   s_glds_obsv skf;
+*/
+
   s_plds_obsv sppf;
 
 /*
