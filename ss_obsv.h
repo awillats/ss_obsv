@@ -37,7 +37,7 @@
 #include <StAC_rtxi/dataFuns.h>//for pullParamLine
 
 // plds
-#include <dynCtrlEst>
+#include <armadillo>//<dynCtrlEst>
 #include <plds_adam_funs.hpp> //probably unnecessary
 #include <plds_obsv_adam.hpp>
 
@@ -108,32 +108,3 @@ private slots:
   void bBttn_event(void);
   void zBttn_event(bool);
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
